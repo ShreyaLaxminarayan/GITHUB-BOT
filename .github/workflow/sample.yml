@@ -1,28 +1,21 @@
-# Sample YAML File
-person:
-  name: John Doe
-  age: 30
-  married: true
-  children:
-    - name: Alice
-      age: 5
-    - name: Bob
-      age: 3
-  address:
-    street: 123 Main St
-    city: Springfield
-    zip: 12345
-  hobbies:
-    - Reading
-    - Cycling
-    - Hiking
+name: Makefile CI
 
-preferences:
-  color: Blue
-  food: Pizza
-  music: Jazz
-
-isActive: true
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-  runs-on: self-hosted
+  build:
+
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: sudo apt-get install -y golang-go
+
+    - name: Build
+      run: GOPATH=/home/ubuntu/go GOCACHE=/tmp/go make
