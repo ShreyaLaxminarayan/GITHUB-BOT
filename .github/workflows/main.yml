@@ -1,21 +1,26 @@
-name:  makefile
+name:  BUILD DOTNET
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main"]
 
 jobs:
-  build:
 
+  defaults:
+    run:
+      working-directory: ./scripts
+
+  build:
     runs-on: self-hosted
 
     steps:
-    - uses: actions/checkout@v3
-
-    - name: Install dependencies
-      run: sudo apt-get install -y golang-go
-
-    - name: Build
-      run: GOPATH=/home/ubuntu/go GOCACHE=/tmp/go make
+    - name: Check out the repository to the runner
+    - uses: actions/checkout@v4
+    - name: Make the script files executable
+    - run: chmod +x automate-runtime.sh 
+    - name: run the script
+    - run: |
+    ./automate-runtime.sh
+    
