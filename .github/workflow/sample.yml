@@ -1,0 +1,25 @@
+# Sample YAML File
+person:
+  name: John Doe
+  age: 30
+  married: true
+  children:
+    - name: Alice
+      age: 5
+    - name: Bob
+      age: 3
+  address:
+    street: 123 Main St
+    city: Springfield
+    zip: 12345
+  hobbies:
+    - Reading
+    - Cycling
+    - Hiking
+
+preferences:
+  color: Blue
+  food: Pizza
+  music: Jazz
+
+isActive: true
