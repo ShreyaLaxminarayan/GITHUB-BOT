@@ -16,7 +16,6 @@ jobs:
       
     steps:
     - uses: actions/checkout@v4
-    - name: Clone the repository
     - run: |
           BASEDIR=$(pwd)
           git clone --branch ${GITHUB_REF_NAME:-main} https://github.com/dotnet/runtime
@@ -24,10 +23,5 @@ jobs:
           commit_id=$(git show HEAD --pretty=format:"%h" --no-patch)
           echo "commit id: ${commit_id}" > commit_id.txt
           popd
-    - name: Extract sdk
-    - name: Build runtime
-    - name: Shoot email
-    - run: chmod +x automate-runtime.sh 
-    - run: ./automate-runtime.sh
     
     
