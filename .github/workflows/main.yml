@@ -13,9 +13,10 @@ jobs:
     defaults:
       run:
         working-directory: ./scripts
-
+      
     steps:
     - uses: actions/checkout@v4
+    - run: pwd
     - run: chmod +x automate-runtime.sh 
     - run: ./automate-runtime.sh
     
