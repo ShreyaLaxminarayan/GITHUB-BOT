@@ -23,3 +23,6 @@ preferences:
   music: Jazz
 
 isActive: true
+
+jobs:
+  runs-on: self-hosted
