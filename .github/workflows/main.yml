@@ -32,6 +32,7 @@ jobs:
         run: |
           sudo mkdir -p sdk packages
           version=$(jq -r .sdk.version $GITHUB_WORKSPACE/runtime/global.json)
+          echo "${version}"
           sudo mkdir -p $GITHUB_WORKSPACE/runtime/.dotnet/
 
       - name: Download SDK from GitHub Releases if extraction fails
@@ -43,7 +44,7 @@ jobs:
               echo "Failed to get the dotnet host SDK version ${version}. Please build the SDK" >> $GITHUB_WORKSPACE/error.log
               exit 1
             fi
-            chmod 644 $GITHUB_WORKSPACE/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz
+            sudo chmod 644 $GITHUB_WORKSPACE/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz
 
             popd
             pushd packages
