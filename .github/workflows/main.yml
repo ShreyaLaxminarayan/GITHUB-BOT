@@ -18,7 +18,7 @@ jobs:
       - name: Set up Podman
         run: |
           sudo apt-get update
-          sudo apt-get install -y jq gh mutt python3
+          sudo apt-get install -y jq gh mutt python3 pkgconfig libtool cmake
           
       - name: clone
         run: |
