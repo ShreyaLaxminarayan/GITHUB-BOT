@@ -7,6 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
+
   setup-dotnet-sdk:
     runs-on: self-hosted 
 
@@ -18,18 +19,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y podman
-
-      - name: Clone Runtime Repository
+      - name: clone
         run: |
-          git clone --branch ${GITHUB_REF:-main} https://github.com/dotnet/runtime
-          pushd runtime
-          commit_id=$(git show HEAD --pretty=format:"%h" --no-patch)
-          echo "commit id: ${commit_id}" >> commit_id.txt
-          popd
-
+          git clone https://github.com/dotnet/runtime.git
+          cd runtime
+        
       - name: Extract SDK
         run: |
-          mkdir -p sdk packages
+          sudo mkdir -p sdk packages
           version=$(jq -r .sdk.version $GITHUB_WORKSPACE/runtime/global.json)
           mkdir -p $GITHUB_WORKSPACE/runtime/.dotnet/
           tar -xzf $GITHUB_WORKSPACE/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz --directory $GITHUB_WORKSPACE/runtime/.dotnet/
