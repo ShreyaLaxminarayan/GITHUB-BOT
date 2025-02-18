@@ -15,14 +15,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # - name: Set up Podman
-      #   run: |
-      #     sudo apt-get update
-      #     sudo apt-get install -y jq gh mutt
+      - name: Set up Podman
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq gh mutt
+          
       - name: clone
         run: |
           mkdir runtime
-          # git clone https://github.com/dotnet/runtime.git
+          git clone https://github.com/dotnet/runtime.git
           cd runtime
         
       - name: Set up GitHub CLI authentication
