@@ -20,8 +20,16 @@ jobs:
 
     - run: |
         BASEDIR=$(pwd)
+        
+        # Clone the dotnet/runtime repository
         git clone --branch ${GITHUB_REF_NAME:-main} https://github.com/dotnet/runtime
         cd runtime
+        
+        # Check the contents of the runtime directory to verify that global.json is there
+        echo "Listing contents of runtime directory:"
+        ls -l
+
+        # Extract the commit ID (you can skip this part if not needed)
         commit_id=$(git show HEAD --pretty=format:"%h" --no-patch)
         echo "commit id: ${commit_id}" > commit_id.txt
         cd ..
@@ -29,10 +37,11 @@ jobs:
     - run: |
         sudo mkdir -p /workspace/sdk /workspace/packages
 
-        # Debugging: Ensure that the global.json file exists
+        # Check if global.json exists and print its path for debugging
         echo "BASEDIR: ${BASEDIR}"
         echo "Looking for global.json at ${BASEDIR}/runtime/global.json"
 
+        # Verify if global.json exists
         if [ ! -f "${BASEDIR}/runtime/global.json" ]; then
             echo "global.json not found at ${BASEDIR}/runtime/global.json"
             exit 1
@@ -66,7 +75,3 @@ jobs:
           # Extract the SDK tarball after download
           tar -xzf /workspace/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz --directory /workspace/runtime/.dotnet/ || exit 1
         fi
-
-        
-
-    
