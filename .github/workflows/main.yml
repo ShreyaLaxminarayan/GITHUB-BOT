@@ -27,7 +27,7 @@ jobs:
         sudo mkdir -p /workspace/sdk /workspace/packages
         version=$(jq .sdk.version ${BASEDIR}/runtime/global.json | tr -d '"')
         echo "SDK version: ${version}"
-        mkdir -p /workspace/runtime/.dotnet/
+        sudo mkdir -p /workspace/runtime/.dotnet/
         if ! tar -xzf ${BASEDIR}/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz --directory /workspace/runtime/.dotnet/; then
           echo "Failed to extract SDK. Trying to download it."
           cd /workspace/sdk
