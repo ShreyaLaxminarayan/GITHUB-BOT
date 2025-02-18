@@ -61,6 +61,8 @@ jobs:
 
       - name: Build .NET Runtime
         run: |
+          set -x
+
           pushd $GITHUB_WORKSPACE/runtime
 
           runtime_build_flags=(
