@@ -37,6 +37,7 @@ jobs:
 
       - name: Download SDK from GitHub Releases if extraction fails
         run: |
+            version=$(jq -r .sdk.version $GITHUB_WORKSPACE/runtime/global.json)
             echo "v$version"
 
             pushd sdk
