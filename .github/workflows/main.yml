@@ -24,7 +24,7 @@ jobs:
         cd ..
     - run: |
     - run: |
-        mkdir -p /workspace/sdk /workspace/packages
+        sudo mkdir -p /workspace/sdk /workspace/packages
         version=$(jq .sdk.version ${BASEDIR}/runtime/global.json | tr -d '"')
         echo "SDK version: ${version}"
         mkdir -p /workspace/runtime/.dotnet/
