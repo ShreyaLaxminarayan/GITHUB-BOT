@@ -24,12 +24,24 @@ jobs:
           git clone https://github.com/dotnet/runtime.git
           cd runtime
         
-      - name: Extract SDK
+      - name: Set up GitHub CLI authentication
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | gh auth login --with-token
+
+      - name: Create directories
         run: |
           sudo mkdir -p sdk packages
           version=$(jq -r .sdk.version $GITHUB_WORKSPACE/runtime/global.json)
           mkdir -p $GITHUB_WORKSPACE/runtime/.dotnet/
+
+      - name: Try extracting SDK from tar.gz
+        run: |
+          version=$(jq -r .sdk.version $GITHUB_WORKSPACE/runtime/global.json)
           tar -xzf $GITHUB_WORKSPACE/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz --directory $GITHUB_WORKSPACE/runtime/.dotnet/
+        continue-on-error: true 
+
+      - name: Download SDK from GitHub Releases if extraction fails
+        run: |
           if [ $? -ne 0 ]; then
             echo "Failed to extract SDK from tar.gz, downloading from GH Releases" >> $GITHUB_WORKSPACE/error.log
             pushd sdk
