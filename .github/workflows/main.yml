@@ -32,12 +32,13 @@ jobs:
         run: |
           sudo mkdir -p sdk packages
           version=$(jq -r .sdk.version $GITHUB_WORKSPACE/runtime/global.json)
-          echo "${version}"
+          echo "v${version}"
           sudo mkdir -p $GITHUB_WORKSPACE/runtime/.dotnet/
 
       - name: Download SDK from GitHub Releases if extraction fails
         run: |
-            echo "Attempting to download release v${version}"
+            echo "v${version}"
+
             pushd sdk
 
             gh release list --repo IBM/dotnet-s390x
