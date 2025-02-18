@@ -24,18 +24,17 @@ jobs:
         run: |
           mkdir runtime
           git clone https://github.com/dotnet/runtime.git
-          cd runtime
-        
+          
       - name: Set up GitHub CLI authentication
         run: |
           echo ${{ secrets.PAT_TOKEN }} | gh auth login --with-token
 
       - name: Create directories
         run: |
-          sudo mkdir -p sdk packages
+          mkdir -p sdk packages
           version=$(jq -r .sdk.version $GITHUB_WORKSPACE/runtime/global.json)
           echo "v$version"
-          sudo mkdir -p $GITHUB_WORKSPACE/runtime/.dotnet/
+          mkdir -p $GITHUB_WORKSPACE/runtime/.dotnet/
 
       - name: Download SDK from GitHub Releases if extraction fails
         run: |
