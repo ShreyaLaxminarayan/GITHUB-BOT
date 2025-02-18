@@ -14,27 +14,31 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - run: |
-          BASEDIR=$(pwd)
-          git clone --branch ${GITHUB_REF_NAME:-main} https://github.com/dotnet/runtime
-          pushd runtime
-          commit_id=$(git show HEAD --pretty=format:"%h" --no-patch)
-          echo "commit id: ${commit_id}" > commit_id.txt
-          popd
+          sudo apt-get install jq mutt gh
     - run: |
-          mkdir -p sdk packages
-          version=$(jq .sdk.version ${BASEDIR}/runtime/global.json | tr -d '"')
-          echo "SDK version: ${version}"
-          mkdir -p ${BASEDIR}/runtime/.dotnet/
-          if ! tar -xzf ${BASEDIR}/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz --directory ${BASEDIR}/runtime/.dotnet/; then
-            echo "Failed to extract SDK. Trying to download it."
-            pushd sdk
-            gh release download v${version} --repo IBM/dotnet-s390x --pattern dotnet-sdk-${version}-linux-s390x.tar.gz || exit 1
-            popd
-            pushd packages
-            gh release download v${version} --repo IBM/dotnet-s390x --pattern '*linux-s390x*.nupkg' || exit 1
-            tar -xzf ${BASEDIR}/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz --directory ${BASEDIR}/runtime/.dotnet/
-            popd
-          fi
+        BASEDIR=$(pwd)
+        git clone --branch ${GITHUB_REF_NAME:-main} https://github.com/dotnet/runtime
+        cd runtime
+        commit_id=$(git show HEAD --pretty=format:"%h" --no-patch)
+        echo "commit id: ${commit_id}" > commit_id.txt
+        cd ..
+    - run: |
+    - run: |
+        mkdir -p /workspace/sdk /workspace/packages
+        version=$(jq .sdk.version ${BASEDIR}/runtime/global.json | tr -d '"')
+        echo "SDK version: ${version}"
+        mkdir -p /workspace/runtime/.dotnet/
+        if ! tar -xzf ${BASEDIR}/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz --directory /workspace/runtime/.dotnet/; then
+          echo "Failed to extract SDK. Trying to download it."
+          cd /workspace/sdk
+          gh release download v${version} --repo IBM/dotnet-s390x --pattern dotnet-sdk-${version}-linux-s390x.tar.gz || exit 1
+          cd ..
+          cd /workspace/packages
+          gh release download v${version} --repo IBM/dotnet-s390x --pattern '*linux-s390x*.nupkg' || exit 1
+          tar -xzf ${BASEDIR}/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz --directory /workspace/runtime/.dotnet/
+          cd ..
+        fi
+        
         
 
     
