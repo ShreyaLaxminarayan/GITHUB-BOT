@@ -43,6 +43,7 @@ jobs:
             echo "v$version"
 
             pushd sdk
+            export GH_TOKEN=${{ secrets.PAT_TOKEN }}
 
             gh release list --repo IBM/dotnet-s390x
 
