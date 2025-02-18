@@ -15,13 +15,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Podman
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq gh mutt
+      # - name: Set up Podman
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y jq gh mutt
       - name: clone
         run: |
-          git clone https://github.com/dotnet/runtime.git
+          mkdir runtime
+          # git clone https://github.com/dotnet/runtime.git
           cd runtime
         
       - name: Set up GitHub CLI authentication
@@ -50,8 +51,9 @@ jobs:
               exit 1
             fi
 
+
             chmod 644 $GITHUB_WORKSPACE/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz
-            popd
+            ls -l $GITHUB_WORKSPACE/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz  # Debugging line to check permissions            popd
 
             pushd packages
             gh release download v$version --repo IBM/dotnet-s390x --pattern '*linux-s390x*.nupkg'
