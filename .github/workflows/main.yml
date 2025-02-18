@@ -23,9 +23,13 @@ jobs:
         echo "commit id: ${commit_id}" > commit_id.txt
         cd ..
     - run: |
-    - run: |
         sudo mkdir -p /workspace/sdk /workspace/packages
+        if [ ! -f "${BASEDIR}/runtime/global.json" ]; then
+            echo "global.json not found at ${BASEDIR}/runtime/global.json"
+        exit 1
+        fi
         version=$(jq .sdk.version ${BASEDIR}/runtime/global.json | tr -d '"')
+        echo "SDK version: ${version}"
         echo "SDK version: ${version}"
         sudo mkdir -p /workspace/runtime/.dotnet/
         if ! tar -xzf ${BASEDIR}/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz --directory /workspace/runtime/.dotnet/; then
