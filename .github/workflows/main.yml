@@ -64,6 +64,7 @@ jobs:
           set -x
           pushd $GITHUB_WORKSPACE/runtime/eng/common/native
           ./install-dependencies.sh
+          popd
       
       - name: Build .NET Runtime
         run: |
