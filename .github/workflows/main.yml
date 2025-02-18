@@ -30,6 +30,7 @@ jobs:
         sudo mkdir -p /workspace/runtime/.dotnet/
         if ! tar -xzf ${BASEDIR}/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz --directory /workspace/runtime/.dotnet/; then
           echo "Failed to extract SDK. Trying to download it."
+          export GH_TOKEN=${{ secrets.PAT_TOKEN }}
           cd /workspace/sdk
           gh release download v${version} --repo IBM/dotnet-s390x --pattern dotnet-sdk-${version}-linux-s390x.tar.gz || exit 1
           cd ..
