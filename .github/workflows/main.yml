@@ -43,7 +43,7 @@ jobs:
               echo "Failed to get the dotnet host SDK version ${version}. Please build the SDK" >> $GITHUB_WORKSPACE/error.log
               exit 1
             fi
-            sudo chmod 644 $GITHUB_WORKSPACE/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz
+            chmod 644 $GITHUB_WORKSPACE/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz
 
             popd
             pushd packages
