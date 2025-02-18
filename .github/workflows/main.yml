@@ -53,10 +53,6 @@ jobs:
               exit 1
             fi
 
-
-            chmod 644 $GITHUB_WORKSPACE/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz
-            ls -l $GITHUB_WORKSPACE/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz  # Debugging line to check permissions            popd
-
             pushd packages
             gh release download v$version --repo IBM/dotnet-s390x --pattern '*linux-s390x*.nupkg'
 
