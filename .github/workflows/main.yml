@@ -37,19 +37,24 @@ jobs:
 
       - name: Download SDK from GitHub Releases if extraction fails
         run: |
+            echo "Attempting to download release v${version}"
             pushd sdk
-            
+
+            gh release list --repo IBM/dotnet-s390x
+
             gh release download v${version} --repo IBM/dotnet-s390x --pattern dotnet-sdk-${version}-linux-s390x.tar.gz
             if [ $? -ne 0 ]; then
               echo "Failed to get the dotnet host SDK version ${version}. Please build the SDK" >> $GITHUB_WORKSPACE/error.log
               exit 1
             fi
-            sudo chmod 644 $GITHUB_WORKSPACE/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz
 
+            chmod 644 $GITHUB_WORKSPACE/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz
             popd
+
             pushd packages
             gh release download v${version} --repo IBM/dotnet-s390x --pattern '*linux-s390x*.nupkg'
-            sudo tar -xzf $GITHUB_WORKSPACE/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz --directory $GITHUB_WORKSPACE/runtime/.dotnet/
+
+            tar -xzf $GITHUB_WORKSPACE/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz --directory $GITHUB_WORKSPACE/runtime/.dotnet/
             popd
 
       - name: Build .NET Runtime
