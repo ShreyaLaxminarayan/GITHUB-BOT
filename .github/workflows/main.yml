@@ -52,7 +52,7 @@ jobs:
               echo "Failed to get the dotnet host SDK version ${version}. Please build the SDK" >> $GITHUB_WORKSPACE/error.log
               exit 1
             fi
-
+            popd
             pushd packages
             gh release download v$version --repo IBM/dotnet-s390x --pattern '*linux-s390x*.nupkg'
 
