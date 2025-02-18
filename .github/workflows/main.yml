@@ -1,77 +1,50 @@
-name: BUILD DOTNET
+name: Setup Dotnet SDK
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: self-hosted
+  setup-dotnet-sdk:
+    runs-on: self-hosted 
 
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - run: |
-        # Install required dependencies in the Docker container
-        sudo apt-get update
-        sudo apt-get install -y jq mutt gh
+      - name: Set up Podman
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman
 
-    - run: |
-        BASEDIR=$(pwd)
-        
-        # Clone the dotnet/runtime repository
-        git clone --branch ${GITHUB_REF_NAME:-main} https://github.com/dotnet/runtime
-        cd runtime
-        
-        # Check the contents of the runtime directory to verify that global.json is there
-        echo "Listing contents of runtime directory:"
-        ls -l
+      - name: Clone Runtime Repository
+        run: |
+          git clone --branch ${GITHUB_REF:-main} https://github.com/dotnet/runtime
+          pushd runtime
+          commit_id=$(git show HEAD --pretty=format:"%h" --no-patch)
+          echo "commit id: ${commit_id}" >> commit_id.txt
+          popd
 
-        # Extract the commit ID (you can skip this part if not needed)
-        commit_id=$(git show HEAD --pretty=format:"%h" --no-patch)
-        echo "commit id: ${commit_id}" > commit_id.txt
-        cd ..
+      - name: Extract SDK
+        run: |
+          mkdir -p sdk packages
+          version=$(jq -r .sdk.version $GITHUB_WORKSPACE/runtime/global.json)
+          mkdir -p $GITHUB_WORKSPACE/runtime/.dotnet/
+          tar -xzf $GITHUB_WORKSPACE/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz --directory $GITHUB_WORKSPACE/runtime/.dotnet/
+          if [ $? -ne 0 ]; then
+            echo "Failed to extract SDK from tar.gz, downloading from GH Releases" >> $GITHUB_WORKSPACE/error.log
+            pushd sdk
+            gh release download v${version} --repo IBM/dotnet-s390x --pattern dotnet-sdk-${version}-linux-s390x.tar.gz
+            if [ $? -ne 0 ]; then
+              echo "Failed to get the dotnet host SDK version ${version}. Please build the SDK" >> $GITHUB_WORKSPACE/error.log
+              exit 1
+            fi
+            popd
+            pushd packages
+            gh release download v${version} --repo IBM/dotnet-s390x --pattern '*linux-s390x*.nupkg'
+            tar -xzf $GITHUB_WORKSPACE/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz --directory $GITHUB_WORKSPACE/runtime/.dotnet/
+            popd
+          fi
 
-    - run: |
-        sudo mkdir -p /workspace/sdk /workspace/packages
-
-        # Check if global.json exists and print its path for debugging
-        echo "BASEDIR: ${BASEDIR}"
-        echo "Looking for global.json at ${BASEDIR}/runtime/global.json"
-
-        # Verify if global.json exists
-        if [ ! -f "${BASEDIR}/runtime/global.json" ]; then
-            echo "global.json not found at ${BASEDIR}/runtime/global.json"
-            exit 1
-        fi
-
-        # Extract SDK version from global.json
-        version=$(jq .sdk.version ${BASEDIR}/runtime/global.json | tr -d '"')
-        echo "SDK version: ${version}"
-
-        # Create .dotnet directory
-        sudo mkdir -p /workspace/runtime/.dotnet/
-
-        # Try to extract SDK tarball if available
-        if ! tar -xzf ${BASEDIR}/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz --directory /workspace/runtime/.dotnet/; then
-          echo "Failed to extract SDK. Trying to download it."
-
-          # Ensure GH_TOKEN is set for GitHub CLI access
-          export GH_TOKEN=${{ secrets.PAT_TOKEN }}
-
-          # Download SDK from the GitHub release (make sure you're in the correct directory)
-          echo "Downloading SDK from GitHub for version v${version}"
-          cd /workspace/sdk
-          gh release download v${version} --repo IBM/dotnet-s390x --pattern dotnet-sdk-${version}-linux-s390x.tar.gz || exit 1
-          cd ..
-
-          # Download the NuGet package if necessary
-          cd /workspace/packages
-          gh release download v${version} --repo IBM/dotnet-s390x --pattern '*linux-s390x*.nupkg' || exit 1
-          cd ..
-
-          # Extract the SDK tarball after download
-          tar -xzf /workspace/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz --directory /workspace/runtime/.dotnet/ || exit 1
-        fi
