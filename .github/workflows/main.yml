@@ -19,7 +19,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y jq gh mutt python3 
-          sudo apt install zlib1g
+          sudo apt install zlib1g 
+          
 
           
       - name: clone
