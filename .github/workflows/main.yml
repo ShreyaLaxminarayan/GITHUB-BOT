@@ -19,7 +19,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y jq gh mutt python3 cmake pkg-config 
-          sudo apt install -y libz-dev ping iputils-ping
+          sudo apt install -y libz-dev iputils-ping
           
           
       - name: clone
