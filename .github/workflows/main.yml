@@ -92,7 +92,8 @@ jobs:
             --test
           )
 
-          ./build.sh "${runtime_build_flags[@]}" > log
+          ./build.sh "${runtime_build_flags[@]}" 
+          
 
           # Check if build was successful
           if [ $? -ne 0 ]; then
