@@ -1,44 +1,49 @@
-import requests
 import os
+import requests
+from datetime import datetime
 
-API_URL = "https://api.github.com"
-GITHUB_TOKEN = secrets.PAT_TOKEN
-REPO = "dotnet/runtime"  
-BOT_MENTION = "@ShreyaLaxminarayan/GITHUB_BOT"  
-  
-def get_comments_for_pr(pr_number):
-    url = f"{API_URL}/repos/{REPO}/issues/{pr_number}/comments"
-    response = requests.get(url, headers={'Authorization': f'token {GITHUB_TOKEN}'})
-    response.raise_for_status()
-    return response.json()
+repo_owner = "dotnet"  
+repo_name = "runtime"    
+bot_username = "@GITHUB_BOT"     
 
-def get_open_prs():
-    url = f"{API_URL}/repos/{REPO}/pulls"
-    response = requests.get(url, headers={'Authorization': f'token {GITHUB_TOKEN}'})
-    response.raise_for_status()
-    return response.json()
+issues_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/issues"
 
-def check_mentions_in_comments():
-    prs = get_open_prs()
+
+github_token = secrets.PAT_TOKEN
+headers = {
+    "Authorization": f"token {github_token}",
+    "Accept": "application/vnd.github.v3+json",
+}
+
+def check_mentions():
+    response = requests.get(issues_url, headers=headers)
     
-    for pr in prs:
-        pr_number = pr['number']
-        comments = get_comments_for_pr(pr_number)
-        
-        for comment in comments:
-            if BOT_MENTION in comment['body']:
-                print(f"Bot mentioned in PR #{pr_number} by {comment['user']['login']}")
-                reply_to_comment(pr_number, comment['id'])
+    if response.status_code != 200:
+        print(f"Error fetching issues: {response.status_code}")
+        return
 
-def reply_to_comment(pr_number, comment_id):
-    url = f"{API_URL}/repos/{REPO}/issues/comments"
-    payload = {
-        'body': "Triggering runtime builds",
-        'in_reply_to': comment_id
-    }
-    response = requests.post(url, headers={'Authorization': f'token {GITHUB_TOKEN}'}, json=payload)
-    response.raise_for_status()
-    print(f"Replied to comment {comment_id} on PR #{pr_number}")
+    issues = response.json()
+    
+    for issue in issues:
+        if "pull_request" in issue and issue["state"] == "open":
+            if f"@{bot_username}" in issue["body"]:
+                print(f"Found mention in issue #{issue['number']}: {issue['title']}")
+                # Trigger CI job here if needed
+                # For example, you could create a comment in the issue:
+                comment_url = issue["comments_url"]
+                comment_payload = {
+                    "body": f"@{bot_username} was mentioned, CI process triggered."
+                }
+                comment_response = requests.post(
+                    comment_url, headers=headers, json=comment_payload
+                )
+                if comment_response.status_code == 201:
+                    print(f"Comment added to issue #{issue['number']}")
+                else:
+                    print(f"Failed to add comment to issue #{issue['number']}")
+            else:
+                print(f"No mention found in issue #{issue['number']}.")
 
 if __name__ == "__main__":
-    check_mentions_in_comments()
+    check_mentions()
+
