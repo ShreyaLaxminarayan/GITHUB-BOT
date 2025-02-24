@@ -27,7 +27,7 @@ jobs:
       
       - name: Execute python script
         run: |
-          python3 issues.py       
+          python3 check_mentions.py       
         env: 
           GITHUB_PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
           
