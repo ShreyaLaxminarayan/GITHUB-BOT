@@ -35,6 +35,7 @@ jobs:
         run: |
           echo ${{ secrets.PAT_TOKEN }} | gh auth login --with-token
 
+
       - name: Create directories
         run: |
           mkdir -p sdk packages
