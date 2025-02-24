@@ -7,7 +7,6 @@ on:
   workflow_dispatch:
 
 jobs:
-
   setup-dotnet-sdk:
     runs-on: self-hosted 
 
@@ -19,13 +18,18 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y jq gh mutt python3 cmake pkg-config 
-          sudo apt install -y libz-dev iputils-ping
+          sudo apt install -y libz-dev iputils-ping requests
           
-          
-      - name: clone
+      - name: Set up python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Execute python script
         run: |
-          mkdir runtime
-          git clone https://github.com/dotnet/runtime.git
+          python3 issues.py       
+        env: 
+          GITHUB_PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
           
       - name: Set up GitHub CLI authentication
         run: |
