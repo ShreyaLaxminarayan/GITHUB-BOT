@@ -2,8 +2,8 @@ name: Setup Dotnet SDK
 
 on:
   schedule:
-    - cron: '*/10 * * * *'  # Poll every 10 minutes
-
+    # - cron: '*/10 * * * *'  # Poll every 10 minutes
+    - cron: ' '
   workflow_dispatch:
 
 jobs:
