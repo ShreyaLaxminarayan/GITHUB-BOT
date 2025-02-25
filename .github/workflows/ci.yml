@@ -2,7 +2,6 @@ name: Setup Dotnet SDK
 
 on:
   schedule:
-    # - cron: '*/10 * * * *'  # Poll every 10 minutes
     - cron: ' '
   workflow_dispatch:
 
@@ -25,16 +24,37 @@ jobs:
         with:
           python-version: '3.10'
       
-      - name: Execute python script
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install github
+
+      - name: Execute python script to handle notifications and get PR number
         run: |
           python3 check_mentions.py       
         env: 
           GITHUB_PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+      - name: Read PR number from file and merge it
+        run: |
           
+          PR_NUMBER=$(cat $GITHUB_WORKSPACE/pr_number.txt)
+          if [ -z "$PR_NUMBER" ]; then
+            echo "No PR found to merge."
+            exit 1
+          fi
+
+          echo "Merging PR #$PR_NUMBER into main branch..."
+          git fetch origin pull/$PR_NUMBER/head:pr-$PR_NUMBER
+          git checkout main
+          git merge pr-$PR_NUMBER
+
+          git push origin main
+          
+          echo "Successfully merged PR #$PR_NUMBER."
+
       - name: Set up GitHub CLI authentication
         run: |
           echo ${{ secrets.PAT_TOKEN }} | gh auth login --with-token
-
 
       - name: Create directories
         run: |
@@ -108,4 +128,4 @@ jobs:
           fi
           
           popd        
-          
+
