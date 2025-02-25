@@ -1,7 +1,7 @@
 import os
 from github import Github
 
-GITHUB_TOKEN = ${{secrets.PAT_TOKEN }}
+GITHUB_TOKEN = os.getenv('PAT_TOKEN')
 
 g = Github(GITHUB_TOKEN)
 
@@ -34,7 +34,7 @@ for notification in notifications:
 if mentioned_prs:
     with open(os.getenv("GITHUB_WORKSPACE") + "/pr_numbers.txt", "a") as f:  
         for pr in mentioned_prs:
-            f.write(f"PR #{pr.number}: {pr.title}\n")
+            f.write(f"PR #{pr.number}\n")
     print(f"Successfully appended {len(mentioned_prs)} PR(s) to the file.")
 else:
     print("No PR mentions found.")
