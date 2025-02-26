@@ -51,8 +51,8 @@ jobs:
           echo "PR #$PR_NUMBER: $PR_TITLE" > "$PR_FILE"
           echo "Successfully saved PR mention to $PR_FILE."
 
-      - name: Upload PR Mentions
-        uses: actions/upload-artifact@v3
-        with:
-          name: pr_mentions
-          path: pr_numbers.txt
+      # - name: Upload PR Mentions
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: pr_mentions
+      #     path: pr_numbers.txt
