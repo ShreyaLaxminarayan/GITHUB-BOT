@@ -23,7 +23,7 @@ jobs:
       - name: Clone .NET Runtime Repository
         run: |
           mkdir runtime
-          git clone https://github.com/saitama952/runtime.git runtime
+          git clone https://github.com/dotnet/runtime.git runtime
 
       - name: Set up GitHub CLI authentication
         run: |
@@ -32,8 +32,12 @@ jobs:
       - name: Fetch PR Number from GitHub Mentions
         id: fetch_pr
         run: |
-          TARGET_REPO="saitama951/runtime"  
-          GITHUB_USER="${{ github.actor }}" 
+          TARGET_REPO="dotnet/runtime"
+          GITHUB_USER="${{ github.actor }}"  # Automatically gets your username
+
+          echo "Checking PR mentions for user: $GITHUB_USER"
+
+          # Fetch notifications where you were mentioned in the target repository
           PR_URL=$(gh api notifications --jq '.[] | select(.repository.full_name=="'"$TARGET_REPO"'") | select(.reason=="mention") | .subject.url' | grep '/pull/' | head -n1)
 
           if [ -z "$PR_URL" ]; then
@@ -48,7 +52,7 @@ jobs:
 
       - name: Validate PR is Open
         run: |
-          PR_STATE=$(gh pr view $PR_NUMBER --repo saitama/runtime --json state -q '.state')
+          PR_STATE=$(gh pr view $PR_NUMBER --repo dotnet/runtime --json state -q '.state')
 
           if [ "$PR_STATE" != "OPEN" ]; then
             echo "PR #$PR_NUMBER is not open. Exiting..."
