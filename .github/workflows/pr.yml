@@ -28,9 +28,9 @@ jobs:
             sudo apt-get install -y jq
           fi
 
-      - name: Fetch PR Mention Without gh auth login
+      - name: Fetch PR Mention
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Use GH_TOKEN directly
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}  
         run: |
           TARGET_REPO="saitama951/runtime"
           PR_FILE="$GITHUB_WORKSPACE/pr_numbers.txt"
