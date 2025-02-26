@@ -28,24 +28,31 @@ jobs:
             sudo apt-get install -y jq
           fi
 
-      - name: Authenticate GitHub CLI
+      - name: Fetch PR Mention Without gh auth login
         env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}  
-      - name: Fetch PR Mention
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Use GH_TOKEN directly
         run: |
           TARGET_REPO="saitama951/runtime"
           PR_FILE="$GITHUB_WORKSPACE/pr_numbers.txt"
 
           echo "Checking PR mentions in repository: $TARGET_REPO"
-          PR_URL=$(gh api notifications --include-read --jq '.[] | select(.repository.full_name=="'"$TARGET_REPO"'") | select(.reason=="mention") | select(.subject.type=="PullRequest") | .subject.url' | head -n1)
+
+          # Fetch first unread notification where user is mentioned in a PR
+          PR_URL=$(gh api notifications --include-read -H "Authorization: token $GH_TOKEN" \
+            --jq '.[] | select(.repository.full_name=="'"$TARGET_REPO"'") | select(.reason=="mention") | select(.subject.type=="PullRequest") | .subject.url' | head -n1)
 
           if [ -z "$PR_URL" ]; then
               echo "No relevant PR mention found."
               exit 1
           fi
+
+          # Extract PR number and title
           PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
-          PR_TITLE=$(gh api "repos/$TARGET_REPO/pulls/$PR_NUMBER" --jq '.title')
+          PR_TITLE=$(gh api "repos/$TARGET_REPO/pulls/$PR_NUMBER" -H "Authorization: token $GH_TOKEN" --jq '.title')
+
           echo "Mentioned in PR #$PR_NUMBER: $PR_TITLE"
+
+          # Save PR details to a file
           echo "PR #$PR_NUMBER: $PR_TITLE" > "$PR_FILE"
           echo "Successfully saved PR mention to $PR_FILE."
 
