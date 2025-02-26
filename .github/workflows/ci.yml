@@ -1,11 +1,13 @@
-name: Setup Dotnet SDK
+name: Setup Dotnet SDK and Merge PR
 
 on:
-  schedule:
-    - cron: ' '
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
+
   setup-dotnet-sdk:
     runs-on: self-hosted 
 
@@ -13,92 +15,72 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Podman
+      - name: Set up dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y jq gh mutt python3 cmake pkg-config 
-          sudo apt install -y libz-dev iputils-ping requests
-          
-      - name: Set up python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-      
-      - name: Install Python dependencies
+          sudo apt-get install -y jq gh python3 cmake pkg-config libz-dev iputils-ping
+
+      - name: Clone .NET Runtime Repository
         run: |
-          python3 -m pip install github
-
-      - name: Execute python script to handle notifications and get PR number
-        run: |
-          python3 check_mentions.py       
-        env: 
-          GITHUB_PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-
-      - name: Read PR number from file and merge it
-        run: |
-          
-          PR_NUMBER=$(cat $GITHUB_WORKSPACE/pr_number.txt)
-          if [ -z "$PR_NUMBER" ]; then
-            echo "No PR found to merge."
-            exit 1
-          fi
-
-          echo "Merging PR #$PR_NUMBER into main branch..."
-          git fetch origin pull/$PR_NUMBER/head:pr-$PR_NUMBER
-          git checkout main
-          git merge pr-$PR_NUMBER
-
-          git push origin main
-          
-          echo "Successfully merged PR #$PR_NUMBER."
+          mkdir runtime
+          git clone https://github.com/saitama952/runtime.git runtime
 
       - name: Set up GitHub CLI authentication
         run: |
           echo ${{ secrets.PAT_TOKEN }} | gh auth login --with-token
-
-      - name: Create directories
+          
+      - name: Fetch PR Number from GitHub Mentions
+        id: fetch_pr
         run: |
-          mkdir -p sdk packages
-          version=$(jq -r .sdk.version $GITHUB_WORKSPACE/runtime/global.json)
-          echo "v$version"
-          mkdir -p $GITHUB_WORKSPACE/runtime/.dotnet/
+          TARGET_REPO="saitama951/runtime"  
+          GITHUB_USER="${{ github.actor }}" 
+          PR_URL=$(gh api notifications --jq '.[] | select(.repository.full_name=="'"$TARGET_REPO"'") | select(.reason=="mention") | .subject.url' | grep '/pull/' | head -n1)
 
-      - name: Download SDK from GitHub Releases if extraction fails
+          if [ -z "$PR_URL" ]; then
+            echo "No relevant PR mention found."
+            exit 1
+          fi
+
+          # Extract PR number from URL
+          PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+          echo "Identified PR #: $PR_NUMBER"
+          echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
+
+      - name: Validate PR is Open
         run: |
-            set -x
-            version=$(jq -r .sdk.version $GITHUB_WORKSPACE/runtime/global.json)
-            echo "v$version"
+          PR_STATE=$(gh pr view $PR_NUMBER --repo saitama/runtime --json state -q '.state')
 
-            pushd sdk
-            export GH_TOKEN=${{ secrets.PAT_TOKEN }}
+          if [ "$PR_STATE" != "OPEN" ]; then
+            echo "PR #$PR_NUMBER is not open. Exiting..."
+            exit 1
+          fi
 
-            gh release list --repo IBM/dotnet-s390x
+          echo "PR #$PR_NUMBER is open and ready for merge."
 
-            gh release download v$version --repo IBM/dotnet-s390x --pattern dotnet-sdk-${version}-linux-s390x.tar.gz
-            if [ $? -ne 0 ]; then
-              echo "Failed to get the dotnet host SDK version ${version}. Please build the SDK" >> $GITHUB_WORKSPACE/error.log
-              exit 1
-            fi
-            popd
-            pushd packages
-            gh release download v$version --repo IBM/dotnet-s390x --pattern '*linux-s390x*.nupkg'
-
-            tar -xzf $GITHUB_WORKSPACE/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz --directory $GITHUB_WORKSPACE/runtime/.dotnet/
-            popd
-
-      - name: Install Build dependencies
+      - name: Fetch Latest Commit of PR and Merge into Main
         run: |
-          set -x
-          pushd $GITHUB_WORKSPACE/runtime/eng/common/native
-          sudo ./install-dependencies.sh
-          popd
-      
+          cd runtime
+
+          # Fetch PR details
+          PR_BRANCH=$(gh pr view $PR_NUMBER --repo dotnet/runtime --json headRefName -q '.headRefName')
+          PR_REPO=$(gh pr view $PR_NUMBER --repo dotnet/runtime --json headRepository -q '.headRepository.name')
+          PR_OWNER=$(gh pr view $PR_NUMBER --repo dotnet/runtime --json headRepositoryOwner -q '.headRepositoryOwner.login')
+
+          echo "Merging PR: #$PR_NUMBER from $PR_OWNER/$PR_REPO:$PR_BRANCH"
+
+          # Add remote and fetch the PR branch
+          git remote add pr_repo https://github.com/$PR_OWNER/$PR_REPO.git
+          git fetch pr_repo $PR_BRANCH
+
+          # Merge PR into main
+          git checkout main
+          git merge --no-edit pr_repo/$PR_BRANCH || { echo "Merge conflict detected!"; exit 1; }
+
       - name: Build .NET Runtime
         run: |
           set -x
-
-          pushd $GITHUB_WORKSPACE/runtime
-
+          cd runtime
+          
           runtime_build_flags=(
             --cmakeargs -DCLR_CMAKE_USE_SYSTEM_ZLIB=true
             --portablebuild false
@@ -117,15 +99,12 @@ jobs:
             --test
           )
 
-          ./build.sh "${runtime_build_flags[@]}" 
-          
+          ./build.sh "${runtime_build_flags[@]}"
 
           # Check if build was successful
           if [ $? -ne 0 ]; then
-            echo "build failed! please check the errors" >> $GITHUB_WORKSPACE/error.log
+            echo "Build failed! Check the errors." >> $GITHUB_WORKSPACE/error.log
+            exit 1
           else
-            echo "build success!" >> $GITHUB_WORKSPACE/build_success.log
+            echo "Build success!" >> $GITHUB_WORKSPACE/build_success.log
           fi
-          
-          popd        
-
