@@ -37,8 +37,7 @@ jobs:
 
           echo "Checking PR mentions in repository: $TARGET_REPO"
 
-          # Fetch first unread notification where user is mentioned in a PR
-          PR_URL=$(gh api notifications --include-read -H "Authorization: token $GH_TOKEN" \
+          PR_URL=$(gh api notifications -H "Authorization: token $GH_TOKEN" \
             --jq '.[] | select(.repository.full_name=="'"$TARGET_REPO"'") | select(.reason=="mention") | select(.subject.type=="PullRequest") | .subject.url' | head -n1)
 
           if [ -z "$PR_URL" ]; then
