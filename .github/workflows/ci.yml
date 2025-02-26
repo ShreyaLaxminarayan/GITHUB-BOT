@@ -1,9 +1,9 @@
 name: Setup Dotnet SDK and Merge PR
 
-on:
-  push:
-    branches:
-      - main
+# on:
+#   push:
+#     branches:
+#       - main
   workflow_dispatch:
 
 jobs:
