@@ -61,9 +61,18 @@ jobs:
           echo "Cloning repository..."
           gh repo clone saitama951/runtime
           cd runtime
+          
+          echo "Fetching latest changes..."
           git fetch origin main
           git checkout main
+          
+          echo "Fetching latest commit from PR..."
+          echo "Latest commit ID: $LATEST_COMMIT"
+          
+          echo "Cherry-picking latest commit..."
           git cherry-pick $LATEST_COMMIT
+          
+          echo "Pushing changes to origin/main..."
           git push origin main
 
           
