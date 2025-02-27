@@ -5,8 +5,8 @@ on:
     branches:
       - main
   workflow_dispatch:  
-  # schedule:
-  #   - cron: '0 * * * *'  
+  schedule:
+    - cron: '0 * * * *'  
 
 jobs:
   check-mentions:
@@ -27,23 +27,12 @@ jobs:
             echo "Installing jq..."
             sudo apt-get install -y jq
           fi
-
-
-      # - name: Clone Repository
-      #   env:
-      #     GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-      #   run: |
-      #     echo "Cloning repository..."
-      #     gh repo clone saitama951/runtime
-      #     cd runtime
-      #     git fetch origin main
-      #     git checkout main
-
       - name: Fetch PR Mention
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}  
         run: |
           TARGET_REPO="saitama951/runtime"
+          PR_FILE="$GITHUB_WORKSPACE/pr_numbers.txt"
           echo "Checking PR mentions in repository: $TARGET_REPO"
           PR_URL=$(gh api notifications -H "Authorization: token $GH_TOKEN" \
             --jq '.[] | select(.repository.full_name=="'"$TARGET_REPO"'") | select(.reason=="mention") | select(.subject.type=="PullRequest") | .subject.url' | head -n1)
@@ -54,11 +43,7 @@ jobs:
           # Extract PR number and title
           PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
           PR_TITLE=$(gh api "repos/$TARGET_REPO/pulls/$PR_NUMBER" -H "Authorization: token $GH_TOKEN" --jq '.title')
-          PR_BRANCH=$(gh pr view $PR_NUMBER --json headRefName -q '.headRefName')
-          LATEST_COMMIT=$(gh pr view $PR_NUMBER --json commits -q '.commits[-1].oid')
-          
-          echo "Mentioned in PR #$PR_NUMBER (Branch: $PR_BRANCH) - Latest commit: $LATEST_COMMIT"  
-          echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
-          echo "PR_BRANCH=$PR_BRANCH" >> $GITHUB_ENV
-          echo "LATEST_COMMIT=$LATEST_COMMIT" >> $GITHUB_ENV
-
+          echo "Mentioned in PR #$PR_NUMBER: $PR_TITLE"
+          # Save PR details to a file
+          echo "PR #$PR_NUMBER: $PR_TITLE" > "$PR_FILE"
+          echo "Successfully saved PR mention to $PR_FILE."
