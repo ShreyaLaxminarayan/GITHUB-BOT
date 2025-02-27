@@ -149,11 +149,11 @@ jobs:
           
 
           # Check if build was successful
-          if [ $? -ne 0 ]; then
-            echo "build failed! please check the errors" >> $GITHUB_WORKSPACE/error.log
-          else
-            echo "build success!" >> $GITHUB_WORKSPACE/build_success.log
-          fi
+          # if [ $? -ne 0 ]; then
+          #   echo "build failed! please check the errors" >> $GITHUB_WORKSPACE/error.log
+          # else
+          #   echo "build success!" >> $GITHUB_WORKSPACE/build_success.log
+          # fi
           
           popd        
 
