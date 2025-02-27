@@ -44,14 +44,17 @@ jobs:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           TARGET_REPO="saitama951/runtime"
-          PR_URL=$(gh api notifications --jq '.[] | select(.repository.full_name=="'"$TARGET_REPO"'") | select(.reason=="mention") | select(.subject.type=="PullRequest") | .subject.url' | head -n1)
-
+          echo "Checking PR mentions in repository: $TARGET_REPO"
+          PR_URL=$(gh api notifications -H "Authorization: token $GH_TOKEN" \
+            --jq '.[] | select(.repository.full_name=="'"$TARGET_REPO"'") | select(.reason=="mention") | select(.subject.type=="PullRequest") | .subject.url' | head -n1)
           if [ -z "$PR_URL" ]; then
               echo "No relevant PR mention found."
               exit 1
           fi
-
           PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+          echo "$PR_URL"   
+          PR_BRANCH=$(gh pr view "$PR_NUMBER" --repo "$TARGET_REPO" --json headRefName -q '.headRefName')
+          LATEST_COMMIT=$(gh pr view "$PR_NUMBER" --repo "$TARGET_REPO" --json commits -q '.commits[-1].oid')
           PR_BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName -q '.headRefName')
           LATEST_COMMIT=$(gh pr view "$PR_NUMBER" --json commits -q '.commits[-1].oid')
 
