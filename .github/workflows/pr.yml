@@ -40,7 +40,8 @@ jobs:
 
 
       - name: Get PR Details from Notifications
-        id: get_pr
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           TARGET_REPO="saitama951/runtime"
           PR_URL=$(gh api notifications --jq '.[] | select(.repository.full_name=="'"$TARGET_REPO"'") | select(.reason=="mention") | select(.subject.type=="PullRequest") | .subject.url' | head -n1)
