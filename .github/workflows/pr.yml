@@ -74,9 +74,6 @@ jobs:
           echo "Cherry-picking latest commit..."
           git cherry-pick $LATEST_COMMIT
           
-          echo "Pushing changes to origin/main..."
-          git push origin main
-
           
 
 
