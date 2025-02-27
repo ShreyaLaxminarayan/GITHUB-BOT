@@ -29,15 +29,15 @@ jobs:
           fi
 
 
-      - name: Clone Repository
-        env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-        run: |
-          echo "Cloning repository..."
-          gh repo clone saitama951/runtime
-          cd runtime
-          git fetch origin main
-          git checkout main
+      # - name: Clone Repository
+      #   env:
+      #     GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+      #   run: |
+      #     echo "Cloning repository..."
+      #     gh repo clone saitama951/runtime
+      #     cd runtime
+      #     git fetch origin main
+      #     git checkout main
 
       - name: Fetch PR Mention
         env:
