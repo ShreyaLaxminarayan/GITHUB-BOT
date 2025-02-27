@@ -26,23 +26,13 @@ jobs:
           if ! command -v jq &> /dev/null; then
             echo "Installing jq..."
             sudo apt-get install -y jq
-          fi
-
-      # - name: Clone Repository
-      #   env:
-      #     GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-      #   run: |
-      #     echo "Cloning repository..."
-      #     gh repo clone saitama951/runtime
-      #     cd runtime
-      #     git fetch origin main
-      #     git checkout main
-
+          fi          
 
       - name: Get PR Details from Notifications
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
+          
           TARGET_REPO="saitama951/runtime"
           echo "Checking PR mentions in repository: $TARGET_REPO"
           PR_URL=$(gh api notifications -H "Authorization: token $GH_TOKEN" \
@@ -61,8 +51,23 @@ jobs:
 
           echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
           echo "LATEST_COMMIT=$LATEST_COMMIT" 
+          
+          
+
+      - name: Clone Repository
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          echo "Cloning repository..."
+          gh repo clone saitama951/runtime
+          cd runtime
+          git fetch origin main
+          git checkout main
+          git cherry-pick $LATEST_COMMIT
+          git push origin main
 
           
+
 
 
           
