@@ -80,6 +80,7 @@ jobs:
           
           echo "Cherry-picking latest commit..."
           git cherry-pick $LATEST_COMMIT
+          cd ..
 
 
       - name: Create directories
@@ -144,7 +145,7 @@ jobs:
             --test
           )
 
-          ./build.sh "${runtime_build_flags[@]}" 
+          ./build.sh "${runtime_build_flags[@]}" >> $GITHUB_WORKSPACE/log
           
 
           # Check if build was successful
@@ -156,6 +157,25 @@ jobs:
           
           popd        
 
+      - name: Attach File & Reply in PR
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          echo "$PR_NUMBER"
+          TARGET_REPO="saitama951/runtime"
+          
+          echo "Uploading file..."
+          FILE_PATH="$GITHUB_WORKSPACE/log" 
+          echo "Generated report for PR #$PR_NUMBER" > $FILE_PATH
+      
+          UPLOAD_URL=$(gh release create temp-upload --repo "$TARGET_REPO" --title "Temporary Upload" --notes "File attached for PR #$PR_NUMBER" --draft)
+          gh release upload temp-upload "$FILE_PATH" --repo "$TARGET_REPO"
+      
+          FILE_URL="https://github.com/$TARGET_REPO/releases/download/temp-upload/$FILE_PATH"
+      
+          echo "Posting comment on PR..."
+          gh pr comment "$PR_NUMBER" --repo "$TARGET_REPO" --body "Here is the attached file: [Download file]($FILE_URL)"
+      
 
 
     
