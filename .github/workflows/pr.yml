@@ -50,15 +50,26 @@ jobs:
           fi
           PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
           echo "$PR_NUMBER"   
+
+          MENTION_COMMENT=$(gh api repos/$TARGET_REPO/issues/$PR_NUMBER/comments --jq '.[] | select(.body | contains("@your-bot-username"))' | tail -n1)
+          
+          if [ -z "$MENTION_COMMENT" ]; then
+              echo "No mention found in PR comments."
+              exit 1
+          fi
+          MENTIONING_USER=$(echo "$MENTION_COMMENT" | jq -r '.user.login')
+          echo "Bot was mentioned by: @$MENTIONING_USER"
+
           LATEST_COMMIT=$(gh pr view "$PR_NUMBER" --repo "$TARGET_REPO" --json commits -q '.commits[-1].oid')
           if [ -z "$LATEST_COMMIT" ]; then
               echo "Failed to fetch the latest commit from PR #$PR_NUMBER"
               exit 1
           fi
-
+          
           echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
           echo "LATEST_COMMIT=$LATEST_COMMIT" >> $GITHUB_ENV
-          
+          echo "MENTIONING_USER=$MENTIONING_USER" >> $GITHUB_ENV
+
           
 
       - name: Clone Repository
@@ -150,33 +161,27 @@ jobs:
           ./build.sh "${runtime_build_flags[@]}" >> $GITHUB_WORKSPACE/log
           
 
-          # Check if build was successful
-          # if [ $? -ne 0 ]; then
-          #   echo "build failed! please check the errors" >> $GITHUB_WORKSPACE/error.log
-          # else
-          #   echo "build success!" >> $GITHUB_WORKSPACE/build_success.log
-          # fi
+          Check if build was successful
+          if [ $? -ne 0 ]; then
+            echo "build failed! please check the errors" >> $GITHUB_WORKSPACE/error.log
+          else
+            echo "build success!" >> $GITHUB_WORKSPACE/build_success.log
+          fi
           
           popd        
 
-      - name: Attach File & Reply in PR
-        env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-        run: |
-          echo "$PR_NUMBER"
-          TARGET_REPO="saitama951/runtime"
           
-          echo "Uploading file..."
-          FILE_PATH="$GITHUB_WORKSPACE/log" 
-          echo "Generated report for PR #$PR_NUMBER" > $FILE_PATH
-      
-          UPLOAD_URL=$(gh release create temp-upload --repo "$TARGET_REPO" --title "Temporary Upload" --notes "File attached for PR #$PR_NUMBER" --draft)
-          gh release upload temp-upload "$FILE_PATH" --repo "$TARGET_REPO"
-      
-          FILE_URL="https://github.com/$TARGET_REPO/releases/download/temp-upload/$FILE_PATH"
-      
-          echo "Posting comment on PR..."
-          gh pr comment "$PR_NUMBER" --repo "$TARGET_REPO" --body "Here is the attached file: [Download file]($FILE_URL)"
+      - name: Reply in PR with Logs
+        env:
+            GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+            TARGET_REPO="saitama951/runtime"
+            GIST_URL=$(gh gist create "$GITHUB_WORKSPACE/log" --public --desc "Logs for PR #$PR_NUMBER")
+        
+            echo "Gist created at: $GIST_URL"
+        
+            gh pr comment "$PR_NUMBER" --repo "$TARGET_REPO" --body "Build Logs @$MENTIONING_USER, here is the full build log for PR #$PR_NUMBER: 🔗 [View Full Logs]($GIST_URL)"
+        
       
 
 
