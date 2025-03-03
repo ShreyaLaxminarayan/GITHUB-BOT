@@ -51,7 +51,7 @@ jobs:
           PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
           echo "$PR_NUMBER"   
 
-          MENTION_COMMENT=$(gh api repos/$TARGET_REPO/issues/$PR_NUMBER/comments --jq '.[] | select(.body | contains("@your-bot-username"))' | tail -n1)
+          MENTION_COMMENT=$(gh api repos/$TARGET_REPO/issues/$PR_NUMBER/comments --jq '.[] | select(.body | contains("@ShreyaLaxminarayan"))' | tail -n1)
           
           if [ -z "$MENTION_COMMENT" ]; then
               echo "No mention found in PR comments."
