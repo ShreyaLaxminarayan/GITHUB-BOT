@@ -30,6 +30,7 @@ jobs:
           fi
 
       - name: Get PR Details from Notifications
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
