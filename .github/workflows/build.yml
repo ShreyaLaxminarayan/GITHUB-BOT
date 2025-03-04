@@ -1,0 +1,133 @@
+name: Build and Test PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Pull Request Number"
+        required: true
+      commit_id:
+        description: "Commit ID"
+        required: true
+      mentioning_user:
+        description: "User who mentioned the bot"
+        required: true
+
+jobs:
+  build-test:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up environment variables
+        run: |
+          echo "PR_NUMBER=${{ github.event.inputs.pr_number }}" >> $GITHUB_ENV
+          echo "LATEST_COMMIT=${{ github.event.inputs.commit_id }}" >> $GITHUB_ENV
+          echo "MENTIONING_USER=${{ github.event.inputs.mentioning_user }}" >> $GITHUB_ENV
+
+      - name: Set up Podman and Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq gh mutt python3 cmake pkg-config 
+          sudo apt install -y libz-dev iputils-ping
+
+      - name: Clone Repository and Checkout Commit
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          echo "Cloning repository..."
+          gh repo clone saitama951/runtime
+          cd runtime
+          git config --global user.email "raoshreya412@gmail.com"
+          git config --global user.name "ShreyaLaxminarayan"
+
+          echo "Fetching latest changes..."
+          git fetch origin main
+          git checkout main
+          
+          echo "Latest commit ID: $LATEST_COMMIT"
+          
+          echo "Cherry-picking latest commit..."
+          git cherry-pick $LATEST_COMMIT
+          cd ..
+
+      - name: Create directories and Set Up SDK
+        run: |
+          mkdir -p sdk packages
+          version=$(jq -r .sdk.version $GITHUB_WORKSPACE/runtime/global.json)
+          echo "v$version"
+          mkdir -p $GITHUB_WORKSPACE/runtime/.dotnet/
+
+      - name: Download SDK from GitHub Releases if extraction fails
+        run: |
+          set -x
+          version=$(jq -r .sdk.version $GITHUB_WORKSPACE/runtime/global.json)
+          echo "v$version"
+
+          pushd sdk
+          export GH_TOKEN=${{ secrets.PAT_TOKEN }}
+
+          gh release download v$version --repo IBM/dotnet-s390x --pattern dotnet-sdk-${version}-linux-s390x.tar.gz
+          if [ $? -ne 0 ]; then
+            echo "Failed to get the dotnet host SDK version ${version}. Please build the SDK" >> $GITHUB_WORKSPACE/error.log
+            exit 1
+          fi
+          popd
+          pushd packages
+          gh release download v$version --repo IBM/dotnet-s390x --pattern '*linux-s390x*.nupkg'
+
+          tar -xzf $GITHUB_WORKSPACE/sdk/dotnet-sdk-${version}-linux-s390x.tar.gz --directory $GITHUB_WORKSPACE/runtime/.dotnet/
+          popd
+
+      - name: Install Build Dependencies
+        run: |
+          set -x
+          pushd $GITHUB_WORKSPACE/runtime/eng/common/native
+          sudo ./install-dependencies.sh
+          popd
+
+      - name: Build .NET Runtime
+        continue-on-error: true
+        run: |
+          set -x
+
+          pushd $GITHUB_WORKSPACE/runtime
+
+          runtime_build_flags=(
+            --cmakeargs -DCLR_CMAKE_USE_SYSTEM_ZLIB=true
+            --portablebuild false
+            --runtimeconfiguration Release
+            --librariesConfiguration Debug
+            --warnAsError false
+            "/p:NoPgoOptimize=true"
+            "/p:UsingToolMicrosoftNetCompilers=true"
+            "/p:TreatWarningsAsErrors=false"
+            "/p:DotNetBuildFromSource=true"
+            "/p:DotNetBuildSourceOnly=true"
+            "/p:DotNetBuildTests=true"
+            "/p:PrimaryRuntimeFlavor=Mono"
+            "/p:TargetRid=linux-s390x"
+            --subset clr+mono+libs+host+packs+libs.tests
+            --test
+          )
+
+          ./build.sh "${runtime_build_flags[@]}" >> $GITHUB_WORKSPACE/log
+
+          if [ $? -ne 0 ]; then
+            echo "Build failed! Please check the errors" >> $GITHUB_WORKSPACE/log1.txt
+          else
+            echo "Build success!" >> $GITHUB_WORKSPACE/log1.txt
+          fi
+          
+          popd        
+
+      - name: Reply in PR with Logs
+        env:
+            GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+            TARGET_REPO="saitama951/runtime"
+            GIST_URL=$(gh gist create "$GITHUB_WORKSPACE/log" --public --desc "Logs for PR #$PR_NUMBER")
+            echo "Gist created at: $GIST_URL"
+            gh pr comment "$PR_NUMBER" --repo "$TARGET_REPO" --body "@$MENTIONING_USER $log1.txt. Here is the full build log for PR #$PR_NUMBER: 🔗 [View Full Logs]($GIST_URL)"
