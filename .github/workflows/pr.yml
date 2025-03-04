@@ -163,24 +163,24 @@ jobs:
 
           Check if build was successful
           if [ $? -ne 0 ]; then
-            echo "build failed! please check the errors" >> $GITHUB_WORKSPACE/error.log
+            echo "Build failed! Please check the errors" >> $GITHUB_WORKSPACE/log1.txt
           else
-            echo "build success!" >> $GITHUB_WORKSPACE/build_success.log
+            echo "Build success!" >> $GITHUB_WORKSPACE/log1.txt
           fi
           
           popd        
 
           
-      # - name: Reply in PR with Logs
-      #   env:
-      #       GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-      #   run: |
-      #       TARGET_REPO="saitama951/runtime"
-      #       GIST_URL=$(gh gist create "$GITHUB_WORKSPACE/log" --public --desc "Logs for PR #$PR_NUMBER")
-        
-      #       echo "Gist created at: $GIST_URL"
-        
-      #       gh pr comment "$PR_NUMBER" --repo "$TARGET_REPO" --body "Build Logs @$MENTIONING_USER, here is the full build log for PR #$PR_NUMBER: 🔗 [View Full Logs]($GIST_URL)"
+      - name: Reply in PR with Logs
+        env:
+            GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+            TARGET_REPO="saitama951/runtime"
+            GIST_URL=$(gh gist create "$GITHUB_WORKSPACE/log" --public --desc "Logs for PR #$PR_NUMBER")
+            echo "Gist created at: $GIST_URL"
+            gh pr comment "$PR_NUMBER" --repo "$TARGET_REPO"  --body "@$MENTIONING_USER $log1.txt. Here is the full build log for PR #$PR_NUMBER: 🔗 [View Full Logs]($GIST_URL)"
+
+
         
       
 
