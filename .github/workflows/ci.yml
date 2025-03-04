@@ -67,4 +67,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          gh workflow run build.yml -f pr_number=$PR_NUMBER -f commit_id=$LATEST_COMMIT -f mentioning_user=$MENTIONING_USER --repo saitama951/runtime
+          gh workflow run build.yml -f pr_number=$PR_NUMBER -f commit_id=$LATEST_COMMIT -f mentioning_user=$MENTIONING_USER --repo ShreyaLaxminarayan/GITHUB_BOT
