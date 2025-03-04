@@ -171,16 +171,16 @@ jobs:
           popd        
 
           
-      - name: Reply in PR with Logs
-        env:
-            GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-        run: |
-            TARGET_REPO="saitama951/runtime"
-            GIST_URL=$(gh gist create "$GITHUB_WORKSPACE/log" --public --desc "Logs for PR #$PR_NUMBER")
+      # - name: Reply in PR with Logs
+      #   env:
+      #       GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+      #   run: |
+      #       TARGET_REPO="saitama951/runtime"
+      #       GIST_URL=$(gh gist create "$GITHUB_WORKSPACE/log" --public --desc "Logs for PR #$PR_NUMBER")
         
-            echo "Gist created at: $GIST_URL"
+      #       echo "Gist created at: $GIST_URL"
         
-            gh pr comment "$PR_NUMBER" --repo "$TARGET_REPO" --body "Build Logs @$MENTIONING_USER, here is the full build log for PR #$PR_NUMBER: 🔗 [View Full Logs]($GIST_URL)"
+      #       gh pr comment "$PR_NUMBER" --repo "$TARGET_REPO" --body "Build Logs @$MENTIONING_USER, here is the full build log for PR #$PR_NUMBER: 🔗 [View Full Logs]($GIST_URL)"
         
       
 
