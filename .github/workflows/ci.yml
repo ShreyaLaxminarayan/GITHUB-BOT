@@ -1,109 +1,70 @@
-name: Setup Dotnet SDK and Merge PR
+name: Check PR Mentions
 
-# on:
-#   push:
-#     branches:
-#       - main
+on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
+  schedule:
+    - cron: '0 * * * *'  
+
 
 jobs:
-
-  setup-dotnet-sdk:
-    runs-on: self-hosted 
+  check-mentions:
+    runs-on: self-hosted
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up dependencies
+      - name: Ensure GitHub CLI and jq are installed
         run: |
-          sudo apt-get update
-          sudo apt-get install -y jq gh python3 cmake pkg-config libz-dev iputils-ping
-
-      - name: Clone .NET Runtime Repository
-        run: |
-          mkdir runtime
-          git clone https://github.com/saitama951/runtime.git runtime
-
-      - name: Set up GitHub CLI authentication
-        run: |
-          echo ${{ secrets.PAT_TOKEN }} | gh auth login --with-token
+          if ! command -v gh &> /dev/null; then
+            echo "Installing GitHub CLI..."
+            sudo apt-get update && sudo apt-get install -y gh
+          fi
           
-      - name: Fetch PR Number from GitHub Mentions
-        id: fetch_pr
+          if ! command -v jq &> /dev/null; then
+            echo "Installing jq..."
+            sudo apt-get install -y jq
+          fi
+
+      - name: Get PR Details from Notifications
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           TARGET_REPO="saitama951/runtime"
-          GITHUB_USER="${{ github.actor }}"  
-
-          echo "Checking PR mentions for user: $GITHUB_USER"
-
-          PR_URL=$(gh api notifications --jq '.[] | select(.repository.full_name=="'"$TARGET_REPO"'") | select(.reason=="mention") | .subject.url' | grep '/pull/' | head -n1)
-
+          echo "Checking PR mentions in repository: $TARGET_REPO"
+          PR_URL=$(gh api notifications -H "Authorization: token $GH_TOKEN" \
+            --jq '.[] | select(.repository.full_name=="'"$TARGET_REPO"'") | select(.reason=="mention") | select(.subject.type=="PullRequest") | .subject.url' | head -n1)
           if [ -z "$PR_URL" ]; then
-            echo "No relevant PR mention found."
-            exit 1
+              echo "No relevant PR mention found."
+              exit 1
           fi
-
           PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
-          echo "Identified PR #: $PR_NUMBER"
-          echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
+          echo "PR Number: $PR_NUMBER"   
 
-      - name: Validate PR is Open
-        run: |
-          PR_STATE=$(gh pr view $PR_NUMBER --repo dotnet/runtime --json state -q '.state')
-
-          if [ "$PR_STATE" != "OPEN" ]; then
-            echo "PR #$PR_NUMBER is not open. Exiting..."
-            exit 1
-          fi
-
-          echo "PR #$PR_NUMBER is open and ready for merge."
-
-      - name: Fetch Latest Commit of PR and Merge into Main
-        run: |
-          cd runtime
-
-          # Fetch PR details
-          PR_BRANCH=$(gh pr view $PR_NUMBER --repo dotnet/runtime --json headRefName -q '.headRefName')
-          PR_REPO=$(gh pr view $PR_NUMBER --repo dotnet/runtime --json headRepository -q '.headRepository.name')
-          PR_OWNER=$(gh pr view $PR_NUMBER --repo dotnet/runtime --json headRepositoryOwner -q '.headRepositoryOwner.login')
-          echo "Merging PR: #$PR_NUMBER from $PR_OWNER/$PR_REPO:$PR_BRANCH"
-          git remote add pr_repo https://github.com/$PR_OWNER/$PR_REPO.git
-          git fetch pr_repo $PR_BRANCH
-
-          # Merge PR into main
-          git checkout main
-          git merge --no-edit pr_repo/$PR_BRANCH || { echo "Merge conflict detected!"; exit 1; }
-
-      - name: Build .NET Runtime
-        run: |
-          set -x
-          cd runtime
+          MENTION_COMMENT=$(gh api repos/$TARGET_REPO/issues/$PR_NUMBER/comments --jq '.[] | select(.body | contains("@ShreyaLaxminarayan"))' | tail -n1)
           
-          runtime_build_flags=(
-            --cmakeargs -DCLR_CMAKE_USE_SYSTEM_ZLIB=true
-            --portablebuild false
-            --runtimeconfiguration Release
-            --librariesConfiguration Debug
-            --warnAsError false
-            "/p:NoPgoOptimize=true"
-            "/p:UsingToolMicrosoftNetCompilers=true"
-            "/p:TreatWarningsAsErrors=false"
-            "/p:DotNetBuildFromSource=true"
-            "/p:DotNetBuildSourceOnly=true"
-            "/p:DotNetBuildTests=true"
-            "/p:PrimaryRuntimeFlavor=Mono"
-            "/p:TargetRid=linux-s390x"
-            --subset clr+mono+libs+host+packs+libs.tests
-            --test
-          )
-
-          ./build.sh "${runtime_build_flags[@]}"
-
-          # Check if build was successful
-          if [ $? -ne 0 ]; then
-            echo "Build failed! Check the errors." >> $GITHUB_WORKSPACE/error.log
-            exit 1
-          else
-            echo "Build success!" >> $GITHUB_WORKSPACE/build_success.log
+          if [ -z "$MENTION_COMMENT" ]; then
+              echo "No mention found in PR comments."
+              exit 1
           fi
+          MENTIONING_USER=$(echo "$MENTION_COMMENT" | jq -r '.user.login')
+          echo "Bot was mentioned by: @$MENTIONING_USER"
+
+          LATEST_COMMIT=$(gh pr view "$PR_NUMBER" --repo "$TARGET_REPO" --json commits -q '.commits[-1].oid')
+          if [ -z "$LATEST_COMMIT" ]; then
+              echo "Failed to fetch the latest commit from PR #$PR_NUMBER"
+              exit 1
+          fi
+          
+          echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
+          echo "LATEST_COMMIT=$LATEST_COMMIT" >> $GITHUB_ENV
+          echo "MENTIONING_USER=$MENTIONING_USER" >> $GITHUB_ENV
+
+      - name: Trigger Build Workflow
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          gh workflow run build.yml -f pr_number=$PR_NUMBER -f commit_id=$LATEST_COMMIT -f mentioning_user=$MENTIONING_USER --repo saitama951/runtime
