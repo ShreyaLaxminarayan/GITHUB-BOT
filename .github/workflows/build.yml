@@ -38,19 +38,16 @@ jobs:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           echo "Cloning repository..."
+          if [ -d "runtime" ]; then
+              rm -rf runtime
+          fi
           gh repo clone saitama951/runtime
           cd runtime
           git config --global user.email "raoshreya412@gmail.com"
           git config --global user.name "ShreyaLaxminarayan"
-
-          echo "Fetching latest changes..."
-          git fetch origin main
+          git fetch origin pull/$PR_NUMBER/head:pr-test
           git checkout main
-          
-          echo "Latest commit ID: $LATEST_COMMIT"
-          
-          echo "Cherry-picking latest commit..."
-          git cherry-pick $LATEST_COMMIT
+          git merge pr-test
           cd ..
 
       - name: Create directories and Set Up SDK
@@ -92,7 +89,6 @@ jobs:
         continue-on-error: true
         run: |
           set -x
-
           pushd $GITHUB_WORKSPACE/runtime
 
           runtime_build_flags=(
@@ -113,14 +109,21 @@ jobs:
             --test
           )
 
-          ./build.sh "${runtime_build_flags[@]}" >> $GITHUB_WORKSPACE/log
 
+          ./build.sh "${runtime_build_flags[@]}" >> $GITHUB_WORKSPACE/log 2>&1 & BUILD_PID=$!
+          while kill -0 $BUILD_PID 2>/dev/null; do
+            inotifywait -e modify -t 1500 "$GITHUB_WORKSPACE/log" || { 
+              echo "Logs inactive for 25 min. Restarting..." 
+              kill $BUILD_PID 
+              ./build.sh "${runtime_build_flags[@]}" >> $GITHUB_WORKSPACE/log 2>&1 & BUILD_PID=$!
+            }
+          done
+          wait $BUILD_PID
           if [ $? -ne 0 ]; then
-            echo "Build failed! Please check the errors" >> $GITHUB_WORKSPACE/log1.txt
+            echo "Build failed! Please check the errors" >> $GITHUB_WORKSPACE/log1
           else
-            echo "Build success!" >> $GITHUB_WORKSPACE/log1.txt
+            echo "Build success!" >> $GITHUB_WORKSPACE/log1
           fi
-          
           popd        
 
       - name: Reply in PR with Logs
@@ -128,9 +131,9 @@ jobs:
             GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
             TARGET_REPO="saitama951/runtime"
-            GIST_URL=$(gh gist create "$GITHUB_WORKSPACE/log" --public --desc "Logs for PR #$PR_NUMBER")
+            GIST_URL=$(gh gist create "$GITHUB_WORKSPACE/log" --public --desc "Logs for PR #$PR_NUMBER and #$LATEST_COMMIT")
             echo "Gist created at: $GIST_URL"
-            gh pr comment "$PR_NUMBER" --repo "$TARGET_REPO" --body "@$MENTIONING_USER $log1.txt. Here is the full build log for PR #$PR_NUMBER: 🔗 [View Full Logs]($GIST_URL)"
+            gh pr comment "$PR_NUMBER" --repo "$TARGET_REPO" --body "@$MENTIONING_USER $(cat $GITHUB_WORKSPACE/log1). Here is the full build log for PR #$PR_NUMBER: 🔗 [View Full Logs]($GIST_URL)"
 
       - name: Mark Notification as Read
         env:
@@ -141,6 +144,12 @@ jobs:
             gh api --method PATCH /notifications/threads/$NOTIF_ID
             echo "Marked notification for PR #$PR_NUMBER as read."
           else
-            echo "No notification found for PR #$PR_NUMBER."
+            echo "No notification found for PR #$PR_NUMBER#$LATEST_COMMIT."
           fi
+
+
+
+#stupid code
+# echo "Build finished with status $?" >> $GITHUB_WORKSPACE/log1.txt
+# popd
 
