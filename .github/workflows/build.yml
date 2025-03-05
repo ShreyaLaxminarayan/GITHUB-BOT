@@ -131,3 +131,16 @@ jobs:
             GIST_URL=$(gh gist create "$GITHUB_WORKSPACE/log" --public --desc "Logs for PR #$PR_NUMBER")
             echo "Gist created at: $GIST_URL"
             gh pr comment "$PR_NUMBER" --repo "$TARGET_REPO" --body "@$MENTIONING_USER $log1.txt. Here is the full build log for PR #$PR_NUMBER: 🔗 [View Full Logs]($GIST_URL)"
+
+      - name: Mark Notification as Read
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          NOTIF_ID=$(gh api notifications --jq ".[] | select(.subject.url | contains(\"pulls/${PR_NUMBER}\")) | .id")
+          if [ -n "$NOTIF_ID" ]; then
+            gh api --method PATCH /notifications/threads/$NOTIF_ID
+            echo "Marked notification for PR #$PR_NUMBER as read."
+          else
+            echo "No notification found for PR #$PR_NUMBER."
+          fi
+
