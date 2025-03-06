@@ -130,10 +130,11 @@ jobs:
         env:
             GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-            TARGET_REPO="saitama951/runtime"
-            GIST_URL=$(gh gist create "$GITHUB_WORKSPACE/log" --public --desc "Logs for PR #$PR_NUMBER")
+            TARGET_REPO="saitama951/runtime"            
+            GIST_DESC="Logs for PR #$PR_NUMBER - Commit $LATEST_COMMIT"
+            GIST_URL=$(gh gist create "$GITHUB_WORKSPACE/log" --public --desc "$GIST_DESC")
             echo "Gist created at: $GIST_URL"
-            gh pr comment "$PR_NUMBER" --repo "$TARGET_REPO" --body "@$MENTIONING_USER $(cat $GITHUB_WORKSPACE/log1). Here is the full build log for PR #$PR_NUMBER: 🔗 [View Full Logs]($GIST_URL)"
+            gh pr comment "$PR_NUMBER" --repo "$TARGET_REPO" --body "@$MENTIONING_USER $(cat $GITHUB_WORKSPACE/log1). \n  Please check the logs: 🔗 [View Full Logs]($GIST_URL)"
 
       - name: Mark Notification as Read
         env:
@@ -142,9 +143,9 @@ jobs:
           NOTIF_ID=$(gh api notifications --jq ".[] | select(.subject.url | contains(\"pulls/${PR_NUMBER}\")) | .id")
           if [ -n "$NOTIF_ID" ]; then
             gh api --method PATCH /notifications/threads/$NOTIF_ID
-            echo "Marked notification for PR #$PR_NUMBER as read."
+            echo "Marked notification for PR $PR_NUMBER as read."
           else
-            echo "No notification found for PR #$PR_NUMBER#$LATEST_COMMIT."
+            echo "No notification found for PR $PR_NUMBER."
           fi
 
 
