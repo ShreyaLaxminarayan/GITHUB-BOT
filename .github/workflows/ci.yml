@@ -5,9 +5,8 @@ on:
   #   branches:
   #     - main
   workflow_dispatch:
-  # schedule:
-  #   - cron: '*/5 * * * *'  
-
+  schedule:
+    - cron: '*/5 * * * *'  
 
 jobs:
   check-mentions:
@@ -49,7 +48,7 @@ jobs:
           
           if [ -z "$MENTION_COMMENT" ]; then
               echo "No mention found in PR comments."
-              exit 1
+              exit 0
           fi
           MENTIONING_USER=$(echo "$MENTION_COMMENT" | jq -r '.user.login')
           echo "Bot was mentioned by: @$MENTIONING_USER"
@@ -59,10 +58,20 @@ jobs:
               echo "Failed to fetch the latest commit from PR #$PR_NUMBER"
               exit 1
           fi
-          
+         
           echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
           echo "LATEST_COMMIT=$LATEST_COMMIT" >> $GITHUB_ENV
           echo "MENTIONING_USER=$MENTIONING_USER" >> $GITHUB_ENV
+          
+          GIST_DESC="Logs for PR #$PR_NUMBER - Commit $LATEST_COMMIT"
+          EXISTING_GIST=$(gh gist list --json id,description -q \ '.[] | select(.description=="'"$GIST_DESC"'")')
+          if [ -n "$EXISTING_GIST" ]; then
+              GIST_ID=$(echo "$EXISTING_GIST" | jq -r '.id')
+              GIST_URL="https://gist.github.com/$GIST_ID"
+              echo "gist: $GIST_URL"
+              gh pr comment "$PR_NUMBER" --repo "$TARGET_REPO" --body "@$MENTIONING_USER. Please check logs 🔗 [View Full Logs]($GIST_URL)"
+                exit 0 
+          fi
 
       - name: Trigger Build Workflow
         env:
