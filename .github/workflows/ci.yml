@@ -63,18 +63,24 @@ jobs:
           echo "LATEST_COMMIT=$LATEST_COMMIT" >> $GITHUB_ENV
           echo "MENTIONING_USER=$MENTIONING_USER" >> $GITHUB_ENV
           
-          GIST_DESC="Logs for PR #$PR_NUMBER - Commit $LATEST_COMMIT"
-          EXISTING_GIST=$(gh gist list --json id,description -q \ '.[] | select(.description=="'"$GIST_DESC"'")')
-          if [ -n "$EXISTING_GIST" ]; then
-              GIST_ID=$(echo "$EXISTING_GIST" | jq -r '.id')
-              GIST_URL="https://gist.github.com/$GIST_ID"
-              echo "gist: $GIST_URL"
-              gh pr comment "$PR_NUMBER" --repo "$TARGET_REPO" --body "@$MENTIONING_USER. Please check logs 🔗 [View Full Logs]($GIST_URL)"
-                exit 0 
-          fi
-
       - name: Trigger Build Workflow
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           gh workflow run build.yml -f pr_number=$PR_NUMBER -f commit_id=$LATEST_COMMIT -f mentioning_user=$MENTIONING_USER --repo ShreyaLaxminarayan/GITHUB-BOT
+
+
+
+
+
+
+# GIST_DESC="Logs for PR #$PR_NUMBER - Commit $LATEST_COMMIT"
+  # EXISTING_GIST=$(gh gist list --json id,description -q \ '.[] | select(.description=="'"$GIST_DESC"'")')
+  # if [ -n "$EXISTING_GIST" ]; then
+  #     GIST_ID=$(echo "$EXISTING_GIST" | jq -r '.id')
+  #     GIST_URL="https://gist.github.com/$GIST_ID"
+  #     echo "gist: $GIST_URL"
+  #     gh pr comment "$PR_NUMBER" --repo "$TARGET_REPO" --body "@$MENTIONING_USER. Please check logs 🔗 [View Full Logs]($GIST_URL)"
+  #       exit 0 
+# fi
+
